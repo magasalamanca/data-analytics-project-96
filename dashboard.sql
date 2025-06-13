@@ -5,8 +5,9 @@ SELECT
     SUM(total_cost) AS marketing_cost,
     SUM(revenue) AS total_revenue,
     ROUND(
-        (SUM(revenue) - SUM(total_cost)) / 
-        NULLIF(SUM(total_cost), 0) * 100, 
+        (SUM(revenue) - SUM(total_cost)) 
+        / NULLIF(SUM(total_cost), 0) 
+        * 100, 
         2
     ) AS roi_percentage
 FROM 
@@ -21,8 +22,10 @@ ORDER BY
 SELECT
     utm_source,
     utm_campaign,
-    SUM(total_cost) / NULLIF(SUM(leads_count), 0) AS cost_per_lead,
-    SUM(total_cost) / NULLIF(SUM(purchases_count), 0) AS cost_per_purchase
+    SUM(total_cost) 
+    / NULLIF(SUM(leads_count), 0) AS cost_per_lead,
+    SUM(total_cost) 
+    / NULLIF(SUM(purchases_count), 0) AS cost_per_purchase
 FROM 
     marketing_data
 GROUP BY 
