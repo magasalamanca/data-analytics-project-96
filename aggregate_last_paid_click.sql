@@ -1,75 +1,53 @@
--- aggregate_last_paid_click.sql
-
-WITH PaidClicks AS (
+WITH PAID_SESSIONS AS (
     SELECT 
-        campaign_date,
-        utm_source,
-        utm_medium,
-        utm_campaign,
-        daily_spent
-    FROM vk_ads
-    UNION ALL
-    SELECT 
-        campaign_date,
-        utm_source,
-        utm_medium,
-        utm_campaign,
-        daily_spent
-    FROM ya_ads
-),
-LastPaidClick AS (
-    SELECT 
-        s.visit_date,
-        s.source AS utm_source,
-        s.medium AS utm_medium,
-        s.campaign AS utm_campaign,
-        s.visitor_id,
-        pc.daily_spent,
-        l.lead_id,
-        l.created_at,
-        l.amount AS revenue,
-        l.closing_reason,
-        l.status_id,
+        S.VISITOR_ID,
+        S.VISIT_DATE,
+        S.SOURCE AS UTM_SOURCE,
+        S.MEDIUM AS UTM_MEDIUM,
+        S.CAMPAIGN AS UTM_CAMPAIGN,
         ROW_NUMBER() OVER (
-            PARTITION BY l.lead_id 
-            ORDER BY s.visit_date DESC
-        ) AS rn
-    FROM sessions s
-    LEFT JOIN PaidClicks pc 
-        ON s.visit_date = pc.campaign_date
-        AND s.source = pc.utm_source
-        AND s.medium = pc.utm_medium
-        AND s.campaign = pc.utm_campaign
-    LEFT JOIN leads l 
-        ON s.visitor_id = l.visitor_id 
-        AND l.created_at >= s.visit_date
+            PARTITION BY S.VISITOR_ID 
+            ORDER BY S.VISIT_DATE DESC
+        ) AS RN
+    FROM 
+        SESSIONS S
+    WHERE 
+        S.MEDIUM IN ('cpc', 'cpm', 'cpa', 'youtube', 'cpp', 'tg', 'social')
+),
+
+LAST_PAID_CLICKS AS (
+    SELECT 
+        VISITOR_ID,
+        VISIT_DATE,
+        UTM_SOURCE,
+        UTM_MEDIUM,
+        UTM_CAMPAIGN
+    FROM 
+        PAID_SESSIONS
+    WHERE 
+        RN = 1
 )
+
 SELECT 
-    visit_date,
-    utm_source,
-    utm_medium,
-    utm_campaign,
-    COUNT(DISTINCT visitor_id) AS visitors_count,
-    SUM(COALESCE(daily_spent, 0)) AS total_cost,
-    COUNT(DISTINCT CASE WHEN lead_id IS NOT NULL THEN lead_id END) AS leads_count,
-    COUNT(DISTINCT CASE 
-        WHEN (closing_reason = 'Успешно реализовано' OR status_id = 142) 
-        THEN lead_id END) AS purchases_count,
-    SUM(CASE 
-        WHEN (closing_reason = 'Успешно реализовано' OR status_id = 142) 
-        THEN revenue ELSE 0 END) AS revenue
-FROM LastPaidClick
-WHERE rn = 1
-GROUP BY 
-    visit_date,
-    utm_source,
-    utm_medium,
-    utm_campaign
+    LPC.VISITOR_ID,
+    LPC.VISIT_DATE,
+    LPC.UTM_SOURCE,
+    LPC.UTM_MEDIUM,
+    LPC.UTM_CAMPAIGN,
+    L.LEAD_ID,
+    L.CREATED_AT,
+    L.AMOUNT,
+    L.CLOSING_REASON,
+    L.STATUS_ID
+FROM 
+    LAST_PAID_CLICKS LPC
+LEFT JOIN 
+    LEADS L ON LPC.VISITOR_ID = L.VISITOR_ID 
+    AND L.CREATED_AT >= LPC.VISIT_DATE
 ORDER BY 
-    revenue DESC NULLS LAST,
-    visit_date ASC,
-    visitors_count DESC,
-    utm_source ASC,
-    utm_medium ASC,
-    utm_campaign ASC
-LIMIT 15;
+    L.AMOUNT DESC NULLS LAST,
+    LPC.VISIT_DATE ASC,
+    LPC.UTM_SOURCE ASC,
+    LPC.UTM_MEDIUM ASC,
+    LPC.UTM_CAMPAIGN ASC
+LIMIT 10;
