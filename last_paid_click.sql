@@ -1,5 +1,5 @@
 WITH ads AS (
-    SELECT 
+    SELECT
         ad_id,
         campaign_id,
         campaign_name,
@@ -9,7 +9,7 @@ WITH ads AS (
         campaign_date
     FROM vk_ads
     UNION ALL
-    SELECT 
+    SELECT
         ad_id,
         campaign_id,
         campaign_name,
@@ -19,31 +19,36 @@ WITH ads AS (
         campaign_date
     FROM ya_ads
 ),
+
 sessions_with_ads AS (
-    SELECT 
+    SELECT
         s.visitor_id,
         s.visit_date,
         a.utm_source,
         a.utm_medium,
         a.utm_campaign
-    FROM sessions s
-    LEFT JOIN ads a ON DATE(s.visit_date) = DATE(a.campaign_date)
-    WHERE a.utm_medium IN ('cpc', 'cpm', 'cpa', 'youtube', 'cpp', 'tg', 'social')
+    FROM sessions AS s
+    LEFT JOIN ads AS a ON DATE(s.visit_date) = DATE(a.campaign_date)
+    WHERE
+        a.utm_medium IN ('cpc', 'cpm', 'cpa', 'youtube', 'cpp', 'tg', 'social')
 ),
+
 last_paid_click AS (
-    SELECT 
+    SELECT
         visitor_id,
         visit_date,
         utm_source,
         utm_medium,
         utm_campaign,
         ROW_NUMBER() OVER (
-            PARTITION BY visitor_id ORDER BY visit_date DESC
+            PARTITION BY visitor_id
+            ORDER BY visit_date DESC
         ) AS rn
     FROM sessions_with_ads
 ),
+
 final_data AS (
-    SELECT 
+    SELECT
         lpc.visitor_id,
         lpc.visit_date,
         lpc.utm_source,
@@ -54,12 +59,13 @@ final_data AS (
         l.amount,
         l.closing_reason,
         l.status_id
-    FROM last_paid_click lpc
-    LEFT JOIN leads l ON lpc.visitor_id = l.visitor_id
+    FROM last_paid_click AS lpc
+    LEFT JOIN leads AS l ON lpc.visitor_id = l.visitor_id
     WHERE lpc.rn = 1
 )
+
 SELECT * FROM final_data
-ORDER BY 
+ORDER BY
     amount DESC NULLS LAST,
     visit_date ASC,
     utm_source ASC,
