@@ -64,4 +64,3 @@ ORDER BY
     utm_medium ASC,
     utm_campaign ASC
 LIMIT 10;
-
