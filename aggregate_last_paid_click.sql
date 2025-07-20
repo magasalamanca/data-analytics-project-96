@@ -26,42 +26,34 @@ sessions_with_ads AS (
         s.visit_date,
         a.utm_source,
         a.utm_medium,
-        a.utm_campaign
+        a.utm_campaign,
+        ROW_NUMBER() OVER (
+            PARTITION BY s.visitor_id
+            ORDER BY s.visit_date DESC
+        ) AS rn
     FROM sessions AS s
-    LEFT JOIN ads AS a ON DATE(s.visit_date) = DATE(a.campaign_date)
+    LEFT JOIN ads AS a
+        ON DATE(s.visit_date) = DATE(a.campaign_date)
     WHERE
         a.utm_medium IN ('cpc', 'cpm', 'cpa', 'youtube', 'cpp', 'tg', 'social')
 ),
 
-last_paid_click AS (
-    SELECT
-        visitor_id,
-        visit_date,
-        utm_source,
-        utm_medium,
-        utm_campaign,
-        ROW_NUMBER() OVER (
-            PARTITION BY visitor_id
-            ORDER BY visit_date DESC
-        ) AS rn
-    FROM sessions_with_ads
-),
-
 final_data AS (
     SELECT
-        lpc.visitor_id,
-        lpc.visit_date,
-        lpc.utm_source,
-        lpc.utm_medium,
-        lpc.utm_campaign,
+        s.visitor_id,
+        s.visit_date,
+        s.utm_source,
+        s.utm_medium,
+        s.utm_campaign,
         l.lead_id,
         l.created_at,
         l.amount,
         l.closing_reason,
         l.status_id
-    FROM last_paid_click AS lpc
-    LEFT JOIN leads AS l ON lpc.visitor_id = l.visitor_id
-    WHERE lpc.rn = 1
+    FROM sessions_with_ads AS s
+    LEFT JOIN leads AS l
+        ON s.visitor_id = l.visitor_id
+    WHERE s.rn = 1
 )
 
 SELECT * FROM final_data
