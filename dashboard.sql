@@ -1,6 +1,6 @@
 -- Запрос 1: Основные данные для дашборда
 WITH PAID_CLICKS AS (
-    SELECT 
+    SELECT
         CAMPAIGN_DATE,
         UTM_SOURCE,
         UTM_MEDIUM,
@@ -8,7 +8,7 @@ WITH PAID_CLICKS AS (
         DAILY_SPENT
     FROM VK_ADS
     UNION ALL
-    SELECT 
+    SELECT
         CAMPAIGN_DATE,
         UTM_SOURCE,
         UTM_MEDIUM,
@@ -17,7 +17,7 @@ WITH PAID_CLICKS AS (
     FROM YA_ADS
 ),
 LAST_PAID_CLICK AS (
-    SELECT 
+    SELECT
         S.VISIT_DATE,
         S.SOURCE AS UTM_SOURCE,
         S.MEDIUM AS UTM_MEDIUM,
@@ -30,21 +30,21 @@ LAST_PAID_CLICK AS (
         L.CLOSING_REASON,
         L.STATUS_ID,
         ROW_NUMBER() OVER (
-            PARTITION BY L.LEAD_ID 
+            PARTITION BY L.LEAD_ID
             ORDER BY S.VISIT_DATE DESC
         ) AS RN
-    FROM SESSIONS S
-    LEFT JOIN PAID_CLICKS PC 
+    FROM SESSIONS AS S
+    LEFT JOIN PAID_CLICKS AS PC
         ON S.VISIT_DATE = PC.CAMPAIGN_DATE
         AND S.SOURCE = PC.UTM_SOURCE
         AND S.MEDIUM = PC.UTM_MEDIUM
         AND S.CAMPAIGN = PC.UTM_CAMPAIGN
-    LEFT JOIN LEADS L 
-        ON S.VISITOR_ID = L.VISITOR_ID 
+    LEFT JOIN LEADS AS L
+        ON S.VISITOR_ID = L.VISITOR_ID
         AND L.CREATED_AT >= S.VISIT_DATE
 )
 
-SELECT 
+SELECT
     VISIT_DATE,
     UTM_SOURCE,
     UTM_MEDIUM,
@@ -52,53 +52,53 @@ SELECT
     COUNT(DISTINCT VISITOR_ID) AS VISITORS_COUNT,
     SUM(COALESCE(DAILY_SPENT, 0)) AS TOTAL_COST,
     COUNT(DISTINCT LEAD_ID) AS LEADS_COUNT,
-    COUNT(DISTINCT CASE 
-        WHEN (CLOSING_REASON = 'Успешно реализовано' OR STATUS_ID = 142) 
-        THEN LEAD_ID 
+    COUNT(DISTINCT CASE
+        WHEN (CLOSING_REASON = 'Успешно реализовано' OR STATUS_ID = 142)
+        THEN LEAD_ID
     END) AS PURCHASES_COUNT,
-    SUM(CASE 
-        WHEN (CLOSING_REASON = 'Успешно реализовано' OR STATUS_ID = 142) 
-        THEN REVENUE 
-        ELSE 0 
+    SUM(CASE
+        WHEN (CLOSING_REASON = 'Успешно реализовано' OR STATUS_ID = 142)
+        THEN REVENUE
+        ELSE 0
     END) AS REVENUE,
-    CASE 
-        WHEN COUNT(DISTINCT VISITOR_ID) > 0 
-        THEN SUM(COALESCE(DAILY_SPENT, 0)) / COUNT(DISTINCT VISITOR_ID) 
-        ELSE 0 
+    CASE
+        WHEN COUNT(DISTINCT VISITOR_ID) > 0
+        THEN SUM(COALESCE(DAILY_SPENT, 0)) / COUNT(DISTINCT VISITOR_ID)
+        ELSE 0
     END AS CPU,
-    CASE 
-        WHEN COUNT(DISTINCT LEAD_ID) > 0 
-        THEN SUM(COALESCE(DAILY_SPENT, 0)) / COUNT(DISTINCT LEAD_ID) 
-        ELSE 0 
+    CASE
+        WHEN COUNT(DISTINCT LEAD_ID) > 0
+        THEN SUM(COALESCE(DAILY_SPENT, 0)) / COUNT(DISTINCT LEAD_ID)
+        ELSE 0
     END AS CPL,
-    CASE 
-        WHEN COUNT(DISTINCT CASE 
-                WHEN (CLOSING_REASON = 'Успешно реализовано' OR STATUS_ID = 142) 
-                THEN LEAD_ID 
-            END) > 0 
-        THEN SUM(COALESCE(DAILY_SPENT, 0)) / COUNT(DISTINCT CASE 
-                WHEN (CLOSING_REASON = 'Успешно реализовано' OR STATUS_ID = 142) 
-                THEN LEAD_ID 
-            END) 
-        ELSE 0 
+    CASE
+        WHEN COUNT(DISTINCT CASE
+                WHEN (CLOSING_REASON = 'Успешно реализовано' OR STATUS_ID = 142)
+                THEN LEAD_ID
+            END) > 0
+        THEN SUM(COALESCE(DAILY_SPENT, 0)) / COUNT(DISTINCT CASE
+                WHEN (CLOSING_REASON = 'Успешно реализовано' OR STATUS_ID = 142)
+                THEN LEAD_ID
+            END)
+        ELSE 0
     END AS CPPU,
-    CASE 
-        WHEN SUM(COALESCE(DAILY_SPENT, 0)) > 0 
-        THEN (SUM(CASE 
-                WHEN (CLOSING_REASON = 'Успешно реализовано' OR STATUS_ID = 142) 
-                THEN REVENUE 
-                ELSE 0 
-            END) - SUM(COALESCE(DAILY_SPENT, 0))) / SUM(COALESCE(DAILY_SPENT, 0)) * 100 
-        ELSE 0 
+    CASE
+        WHEN SUM(COALESCE(DAILY_SPENT, 0)) > 0
+        THEN (SUM(CASE
+                WHEN (CLOSING_REASON = 'Успешно реализовано' OR STATUS_ID = 142)
+                THEN REVENUE
+                ELSE 0
+            END) - SUM(COALESCE(DAILY_SPENT, 0))) / SUM(COALESCE(DAILY_SPENT, 0)) * 100
+        ELSE 0
     END AS ROI
 FROM LAST_PAID_CLICK
 WHERE RN = 1
-GROUP BY 
+GROUP BY
     VISIT_DATE,
     UTM_SOURCE,
     UTM_MEDIUM,
     UTM_CAMPAIGN
-ORDER BY 
+ORDER BY
     REVENUE DESC NULLS LAST,
     VISIT_DATE ASC,
     VISITORS_COUNT DESC,
@@ -117,8 +117,8 @@ WITH LEAD_CONVERSION AS (
         MIN(S.VISIT_DATE) AS FIRST_VISIT_DATE,
         MAX(S.VISIT_DATE) AS LAST_VISIT_DATE,
         DATEDIFF('day', MIN(S.VISIT_DATE), L.CREATED_AT) AS DAYS_TO_CONVERT
-    FROM LEADS L
-    INNER JOIN SESSIONS S
+    FROM LEADS AS L
+    INNER JOIN SESSIONS AS S
         ON L.VISITOR_ID = S.VISITOR_ID
         AND L.CREATED_AT >= S.VISIT_DATE
     GROUP BY
@@ -183,13 +183,13 @@ LAST_PAID_CLICK AS (
             PARTITION BY L.LEAD_ID
             ORDER BY S.VISIT_DATE DESC
         ) AS RN
-    FROM SESSIONS S
-    LEFT JOIN PAID_CLICKS PC
+    FROM SESSIONS AS S
+    LEFT JOIN PAID_CLICKS AS PC
         ON S.VISIT_DATE = PC.CAMPAIGN_DATE
         AND S.SOURCE = PC.UTM_SOURCE
         AND S.MEDIUM = PC.UTM_MEDIUM
         AND S.CAMPAIGN = PC.UTM_CAMPAIGN
-    LEFT JOIN LEADS L
+    LEFT JOIN LEADS AS L
         ON S.VISITOR_ID = L.VISITOR_ID
         AND S.VISIT_DATE <= L.CREATED_AT
 )
@@ -269,13 +269,13 @@ LAST_PAID_CLICK AS (
             PARTITION BY L.LEAD_ID
             ORDER BY S.VISIT_DATE DESC
         ) AS RN
-    FROM SESSIONS S
-    LEFT JOIN PAID_CLICKS PC
+    FROM SESSIONS AS S
+    LEFT JOIN PAID_CLICKS AS PC
         ON S.VISIT_DATE = PC.CAMPAIGN_DATE
         AND S.SOURCE = PC.UTM_SOURCE
         AND S.MEDIUM = PC.UTM_MEDIUM
         AND S.CAMPAIGN = PC.UTM_CAMPAIGN
-    LEFT JOIN LEADS L
+    LEFT JOIN LEADS AS L
         ON S.VISITOR_ID = L.VISITOR_ID
         AND S.VISIT_DATE <= L.CREATED_AT
 )
@@ -311,7 +311,7 @@ SELECT
                 END
             ) - SUM(COALESCE(DAILY_SPENT, 0))
         ) / NULLIF(SUM(COALESCE(DAILY_SPENT, 0)), 0) * 100 > 50
-        THEN 'Увеличить бюджет'
+            THEN 'Увеличить бюджет'
         WHEN (
             SUM(
                 CASE
@@ -321,7 +321,7 @@ SELECT
                 END
             ) - SUM(COALESCE(DAILY_SPENT, 0))
         ) / NULLIF(SUM(COALESCE(DAILY_SPENT, 0)), 0) * 100 BETWEEN 0 AND 50
-        THEN 'Поддерживать текущий уровень'
+            THEN 'Поддерживать текущий уровень'
         WHEN (
             SUM(
                 CASE
@@ -331,7 +331,7 @@ SELECT
                 END
             ) - SUM(COALESCE(DAILY_SPENT, 0))
         ) / NULLIF(SUM(COALESCE(DAILY_SPENT, 0)), 0) * 100 < 0
-        THEN 'Сократить или оптимизировать'
+            THEN 'Сократить или оптимизировать'
         ELSE 'Требуется дополнительный анализ'
     END AS BUDGET_RECOMMENDATION
 FROM LAST_PAID_CLICK
