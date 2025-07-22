@@ -34,8 +34,9 @@ sessions_with_ads AS (
     FROM sessions AS s
     LEFT JOIN ads AS a
         ON DATE(s.visit_date) = DATE(a.campaign_date)
-    WHERE
-        a.utm_medium IN ('cpc', 'cpm', 'cpa', 'youtube', 'cpp', 'tg', 'social')
+    WHERE a.utm_medium IN (
+        'cpc', 'cpm', 'cpa', 'youtube', 'cpp', 'tg', 'social'
+    )
 ),
 
 final_data AS (
@@ -54,13 +55,13 @@ final_data AS (
     LEFT JOIN leads AS l
         ON s.visitor_id = l.visitor_id
     WHERE s.rn = 1
+    ORDER BY
+        amount DESC NULLS LAST,
+        visit_date ASC,
+        utm_source ASC,
+        utm_medium ASC,
+        utm_campaign ASC
+    LIMIT 10
 )
 
-SELECT * FROM final_data
-ORDER BY
-    amount DESC NULLS LAST,
-    visit_date ASC,
-    utm_source ASC,
-    utm_medium ASC,
-    utm_campaign ASC
-LIMIT 10;
+SELECT * FROM final_data;
