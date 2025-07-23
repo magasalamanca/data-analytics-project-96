@@ -16,6 +16,7 @@ WITH PAID_CLICKS AS (
         DAILY_SPENT
     FROM YA_ADS
 ),
+
 LAST_PAID_CLICK AS (
     SELECT
         S.VISIT_DATE,
@@ -35,13 +36,15 @@ LAST_PAID_CLICK AS (
         ) AS RN
     FROM SESSIONS AS S
     LEFT JOIN PAID_CLICKS AS PC
-        ON S.VISIT_DATE = PC.CAMPAIGN_DATE
-        AND S.SOURCE = PC.UTM_SOURCE
-        AND S.MEDIUM = PC.UTM_MEDIUM
-        AND S.CAMPAIGN = PC.UTM_CAMPAIGN
+        ON
+            S.VISIT_DATE = PC.CAMPAIGN_DATE
+            AND S.SOURCE = PC.UTM_SOURCE
+            AND S.MEDIUM = PC.UTM_MEDIUM
+            AND S.CAMPAIGN = PC.UTM_CAMPAIGN
     LEFT JOIN LEADS AS L
-        ON S.VISITOR_ID = L.VISITOR_ID
-        AND L.CREATED_AT >= S.VISIT_DATE
+        ON
+            S.VISITOR_ID = L.VISITOR_ID
+            AND S.VISIT_DATE <= L.CREATED_AT
 )
 
 SELECT
@@ -54,41 +57,45 @@ SELECT
     COUNT(DISTINCT LEAD_ID) AS LEADS_COUNT,
     COUNT(DISTINCT CASE
         WHEN (CLOSING_REASON = 'Успешно реализовано' OR STATUS_ID = 142)
-        THEN LEAD_ID
+            THEN LEAD_ID
     END) AS PURCHASES_COUNT,
     SUM(CASE
         WHEN (CLOSING_REASON = 'Успешно реализовано' OR STATUS_ID = 142)
-        THEN REVENUE
+            THEN REVENUE
         ELSE 0
     END) AS REVENUE,
     CASE
         WHEN COUNT(DISTINCT VISITOR_ID) > 0
-        THEN SUM(COALESCE(DAILY_SPENT, 0)) / COUNT(DISTINCT VISITOR_ID)
+            THEN SUM(COALESCE(DAILY_SPENT, 0)) / COUNT(DISTINCT VISITOR_ID)
         ELSE 0
     END AS CPU,
     CASE
         WHEN COUNT(DISTINCT LEAD_ID) > 0
-        THEN SUM(COALESCE(DAILY_SPENT, 0)) / COUNT(DISTINCT LEAD_ID)
+            THEN SUM(COALESCE(DAILY_SPENT, 0)) / COUNT(DISTINCT LEAD_ID)
         ELSE 0
     END AS CPL,
     CASE
-        WHEN COUNT(DISTINCT CASE
+        WHEN
+            COUNT(DISTINCT CASE
                 WHEN (CLOSING_REASON = 'Успешно реализовано' OR STATUS_ID = 142)
-                THEN LEAD_ID
+                    THEN LEAD_ID
             END) > 0
-        THEN SUM(COALESCE(DAILY_SPENT, 0)) / COUNT(DISTINCT CASE
-                WHEN (CLOSING_REASON = 'Успешно реализовано' OR STATUS_ID = 142)
-                THEN LEAD_ID
+            THEN SUM(COALESCE(DAILY_SPENT, 0)) / COUNT(DISTINCT CASE
+                WHEN
+                    (CLOSING_REASON = 'Успешно реализовано' OR STATUS_ID = 142)
+                    THEN LEAD_ID
             END)
         ELSE 0
     END AS CPPU,
     CASE
         WHEN SUM(COALESCE(DAILY_SPENT, 0)) > 0
-        THEN (SUM(CASE
+            THEN (SUM(CASE
                 WHEN (CLOSING_REASON = 'Успешно реализовано' OR STATUS_ID = 142)
-                THEN REVENUE
+                    THEN REVENUE
                 ELSE 0
-            END) - SUM(COALESCE(DAILY_SPENT, 0))) / SUM(COALESCE(DAILY_SPENT, 0)) * 100
+            END) - SUM(COALESCE(DAILY_SPENT, 0)))
+            / SUM(COALESCE(DAILY_SPENT, 0))
+            * 100
         ELSE 0
     END AS ROI
 FROM LAST_PAID_CLICK
@@ -119,8 +126,9 @@ WITH LEAD_CONVERSION AS (
         DATEDIFF('day', MIN(S.VISIT_DATE), L.CREATED_AT) AS DAYS_TO_CONVERT
     FROM LEADS AS L
     INNER JOIN SESSIONS AS S
-        ON L.VISITOR_ID = S.VISITOR_ID
-        AND L.CREATED_AT >= S.VISIT_DATE
+        ON
+            L.VISITOR_ID = S.VISITOR_ID
+            AND L.CREATED_AT >= S.VISIT_DATE
     GROUP BY
         L.VISITOR_ID,
         L.LEAD_ID,
@@ -181,6 +189,7 @@ WITH PAID_CLICKS AS (
         DAILY_SPENT
     FROM YA_ADS
 ),
+
 LAST_PAID_CLICK AS (
     SELECT
         S.VISIT_DATE,
@@ -200,13 +209,15 @@ LAST_PAID_CLICK AS (
         ) AS RN
     FROM SESSIONS AS S
     LEFT JOIN PAID_CLICKS AS PC
-        ON S.VISIT_DATE = PC.CAMPAIGN_DATE
-        AND S.SOURCE = PC.UTM_SOURCE
-        AND S.MEDIUM = PC.UTM_MEDIUM
-        AND S.CAMPAIGN = PC.UTM_CAMPAIGN
+        ON
+            S.VISIT_DATE = PC.CAMPAIGN_DATE
+            AND S.SOURCE = PC.UTM_SOURCE
+            AND S.MEDIUM = PC.UTM_MEDIUM
+            AND S.CAMPAIGN = PC.UTM_CAMPAIGN
     LEFT JOIN LEADS AS L
-        ON S.VISITOR_ID = L.VISITOR_ID
-        AND S.VISIT_DATE <= L.CREATED_AT
+        ON
+            S.VISITOR_ID = L.VISITOR_ID
+            AND S.VISIT_DATE <= L.CREATED_AT
 )
 
 SELECT
@@ -216,20 +227,24 @@ SELECT
     COUNT(DISTINCT LEAD_ID) AS WEEKLY_LEADS,
     COUNT(DISTINCT CASE
         WHEN (CLOSING_REASON = 'Успешно реализовано' OR STATUS_ID = 142)
-        THEN LEAD_ID
+            THEN LEAD_ID
     END) AS WEEKLY_PURCHASES,
     SUM(COALESCE(DAILY_SPENT, 0)) AS WEEKLY_SPEND,
     SUM(CASE
         WHEN (CLOSING_REASON = 'Успешно реализовано' OR STATUS_ID = 142)
-        THEN REVENUE
+            THEN REVENUE
         ELSE 0
     END) AS WEEKLY_REVENUE,
     ROUND(
         (
             SUM(
                 CASE
-                    WHEN (CLOSING_REASON = 'Успешно реализовано' OR STATUS_ID = 142)
-                    THEN REVENUE
+                    WHEN
+                        (
+                            CLOSING_REASON = 'Успешно реализовано'
+                            OR STATUS_ID = 142
+                        )
+                        THEN REVENUE
                     ELSE 0
                 END
             ) - SUM(COALESCE(DAILY_SPENT, 0))
@@ -267,6 +282,7 @@ WITH PAID_CLICKS AS (
         DAILY_SPENT
     FROM YA_ADS
 ),
+
 LAST_PAID_CLICK AS (
     SELECT
         S.VISIT_DATE,
@@ -286,13 +302,15 @@ LAST_PAID_CLICK AS (
         ) AS RN
     FROM SESSIONS AS S
     LEFT JOIN PAID_CLICKS AS PC
-        ON S.VISIT_DATE = PC.CAMPAIGN_DATE
-        AND S.SOURCE = PC.UTM_SOURCE
-        AND S.MEDIUM = PC.UTM_MEDIUM
-        AND S.CAMPAIGN = PC.UTM_CAMPAIGN
+        ON
+            S.VISIT_DATE = PC.CAMPAIGN_DATE
+            AND S.SOURCE = PC.UTM_SOURCE
+            AND S.MEDIUM = PC.UTM_MEDIUM
+            AND S.CAMPAIGN = PC.UTM_CAMPAIGN
     LEFT JOIN LEADS AS L
-        ON S.VISITOR_ID = L.VISITOR_ID
-        AND S.VISIT_DATE <= L.CREATED_AT
+        ON
+            S.VISITOR_ID = L.VISITOR_ID
+            AND S.VISIT_DATE <= L.CREATED_AT
 )
 
 SELECT
@@ -301,15 +319,19 @@ SELECT
     SUM(COALESCE(DAILY_SPENT, 0)) AS TOTAL_SPEND,
     SUM(CASE
         WHEN (CLOSING_REASON = 'Успешно реализовано' OR STATUS_ID = 142)
-        THEN REVENUE
+            THEN REVENUE
         ELSE 0
     END) AS TOTAL_REVENUE,
     ROUND(
         (
             SUM(
                 CASE
-                    WHEN (CLOSING_REASON = 'Успешно реализовано' OR STATUS_ID = 142)
-                    THEN REVENUE
+                    WHEN
+                        (
+                            CLOSING_REASON = 'Успешно реализовано'
+                            OR STATUS_ID = 142
+                        )
+                        THEN REVENUE
                     ELSE 0
                 END
             ) - SUM(COALESCE(DAILY_SPENT, 0))
@@ -320,8 +342,12 @@ SELECT
         WHEN (
             SUM(
                 CASE
-                    WHEN (CLOSING_REASON = 'Успешно реализовано' OR STATUS_ID = 142)
-                    THEN REVENUE
+                    WHEN
+                        (
+                            CLOSING_REASON = 'Успешно реализовано'
+                            OR STATUS_ID = 142
+                        )
+                        THEN REVENUE
                     ELSE 0
                 END
             ) - SUM(COALESCE(DAILY_SPENT, 0))
@@ -330,8 +356,12 @@ SELECT
         WHEN (
             SUM(
                 CASE
-                    WHEN (CLOSING_REASON = 'Успешно реализовано' OR STATUS_ID = 142)
-                    THEN REVENUE
+                    WHEN
+                        (
+                            CLOSING_REASON = 'Успешно реализовано'
+                            OR STATUS_ID = 142
+                        )
+                        THEN REVENUE
                     ELSE 0
                 END
             ) - SUM(COALESCE(DAILY_SPENT, 0))
@@ -340,8 +370,12 @@ SELECT
         WHEN (
             SUM(
                 CASE
-                    WHEN (CLOSING_REASON = 'Успешно реализовано' OR STATUS_ID = 142)
-                    THEN REVENUE
+                    WHEN
+                        (
+                            CLOSING_REASON = 'Успешно реализовано'
+                            OR STATUS_ID = 142
+                        )
+                        THEN REVENUE
                     ELSE 0
                 END
             ) - SUM(COALESCE(DAILY_SPENT, 0))
