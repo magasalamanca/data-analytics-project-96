@@ -56,13 +56,12 @@ final_data AS (
         ON s.visitor_id = l.visitor_id
     WHERE s.rn = 1
     ORDER BY
-        amount DESC NULLS LAST,
-        visit_date ASC,
-        utm_source ASC,
-        utm_medium ASC,
-        utm_campaign ASC
+        l.amount DESC NULLS LAST,
+        s.visit_date ASC,
+        s.utm_source ASC,
+        s.utm_medium ASC,
+        s.utm_campaign ASC
     LIMIT 10
 )
 
 SELECT * FROM final_data;
-
