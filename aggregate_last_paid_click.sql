@@ -65,3 +65,4 @@ final_data AS (
 )
 
 SELECT * FROM final_data;
+
