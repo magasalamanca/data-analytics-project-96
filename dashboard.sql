@@ -156,7 +156,8 @@ SELECT
     ) AS PCT_CONVERTED_IN_3_DAYS,
     ROUND(
         COUNT(*) FILTER (
-            WHERE CLOSING_REASON = 'Успешно реализовано' OR STATUS_ID = 142
+            WHERE CLOSING_REASON = 'Успешно реализовано'
+            OR STATUS_ID = 142
         ) / NULLIF(COUNT(*), 0) * 100,
         2
     ) AS SUCCESS_RATE
