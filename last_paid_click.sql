@@ -1,44 +1,51 @@
-WITH PAID_SESSIONS AS (
+-- Выборка последнего рекламного касания для каждого посетителя (до конверсии)
+-- с присоединением информации о лидах и платежах (кроме органического трафика)
+
+WITH latest_paid_touch AS (
     SELECT
-        S.VISITOR_ID,
-        S.VISIT_DATE,
-        S.SOURCE AS UTM_SOURCE,
-        S.MEDIUM AS UTM_MEDIUM,
-        S.CAMPAIGN AS UTM_CAMPAIGN,
-        ROW_NUMBER() OVER (
-            PARTITION BY S.VISITOR_ID
-            ORDER BY S.VISIT_DATE DESC
-        ) AS RN
-    FROM
-        SESSIONS AS S
-    WHERE
-        S.MEDIUM IN ('cpc', 'cpm', 'cpa', 'youtube', 'cpp', 'tg', 'social')
+        visitor_id,
+        visit_date,
+        source AS utm_source,
+        medium AS utm_medium,
+        campaign AS utm_campaign
+    FROM (
+        SELECT
+            visitor_id,
+            visit_date,
+            source,
+            medium,
+            campaign,
+            -- Ранжируем сессии по дате (самая свежая — первая)
+            ROW_NUMBER() OVER (
+                PARTITION BY visitor_id
+                ORDER BY visit_date DESC
+            ) AS session_order
+        FROM sessions
+        WHERE medium != 'organic'  -- исключаем органический трафик
+    ) ranked_sessions
+    WHERE session_order = 1  -- оставляем только последнюю сессию
 )
 
+-- Присоединяем данные о лидах: только те, что созданы после сессии
 SELECT
-    PS.VISITOR_ID,
-    PS.VISIT_DATE,
-    PS.UTM_SOURCE,
-    PS.UTM_MEDIUM,
-    PS.UTM_CAMPAIGN,
-    L.LEAD_ID,
-    L.CREATED_AT,
-    L.AMOUNT,
-    L.CLOSING_REASON,
-    L.STATUS_ID
-FROM
-    PAID_SESSIONS AS PS
-LEFT JOIN
-    LEADS AS L
-    ON
-        PS.VISITOR_ID = L.VISITOR_ID
-        AND PS.VISIT_DATE <= L.CREATED_AT
-WHERE
-    PS.RN = 1
+    lpt.visitor_id,
+    lpt.visit_date,
+    lpt.utm_source,
+    lpt.utm_medium,
+    lpt.utm_campaign,
+    l.lead_id,
+    l.created_at,
+    l.amount,
+    l.closing_reason,
+    l.status_id
+FROM latest_paid_touch lpt
+LEFT JOIN leads l
+    ON lpt.visitor_id = l.visitor_id
+    AND lpt.visit_date <= l.created_at  -- лид после или в день сессии
 ORDER BY
-    L.AMOUNT DESC NULLS LAST,
-    PS.VISIT_DATE ASC,
-    PS.UTM_SOURCE ASC,
-    PS.UTM_MEDIUM ASC,
-    PS.UTM_CAMPAIGN ASC
+    l.amount DESC NULLS LAST,           -- сначала крупные сделки
+    lpt.visit_date ASC,                 -- затем по возрастанию даты визита
+    lpt.utm_source ASC NULLS LAST,
+    lpt.utm_medium ASC NULLS LAST,
+    lpt.utm_campaign ASC NULLS LAST
 LIMIT 10;
