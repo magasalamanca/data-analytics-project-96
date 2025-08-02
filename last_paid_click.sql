@@ -22,7 +22,7 @@ WITH latest_paid_touch AS (
             ) AS session_order
         FROM sessions
         WHERE medium != 'organic'  -- исключаем органический трафик
-    ) ranked_sessions
+    ) AS ranked_sessions
     WHERE session_order = 1  -- оставляем только последнюю сессию
 )
 
@@ -38,10 +38,11 @@ SELECT
     l.amount,
     l.closing_reason,
     l.status_id
-FROM latest_paid_touch lpt
-LEFT JOIN leads l
-    ON lpt.visitor_id = l.visitor_id
-    AND lpt.visit_date <= l.created_at  -- лид после или в день сессии
+FROM latest_paid_touch AS lpt
+LEFT JOIN leads AS l
+    ON
+        lpt.visitor_id = l.visitor_id
+        AND lpt.visit_date <= l.created_at  -- лид после или в день сессии
 ORDER BY
     l.amount DESC NULLS LAST,           -- сначала крупные сделки
     lpt.visit_date ASC,                 -- затем по возрастанию даты визита
