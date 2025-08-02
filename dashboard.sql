@@ -60,6 +60,7 @@ WITH lead_stats AS (
         COUNT(*) AS total_count
     FROM leads
 )
+
 SELECT
     ROUND(
         (paid_count::NUMERIC * 100.0) / NULLIF(total_count, 0),
@@ -100,8 +101,8 @@ WITH revenue_by_channel AS (
         s.campaign,
         TO_CHAR(l.created_at, 'YYYY-MM-DD') AS lead_date,
         COALESCE(SUM(l.amount), 0) AS revenue
-    FROM leads l
-    JOIN sessions s ON l.visitor_id = s.visitor_id
+    FROM leads AS l
+    INNER JOIN sessions AS s ON l.visitor_id = s.visitor_id
     GROUP BY lead_date, s.source, s.medium, s.campaign
 ),
 
@@ -133,13 +134,16 @@ SELECT
     r.medium,
     r.campaign,
     ROUND(
-        SUM((r.revenue - COALESCE(s.daily_cost, 0)) / NULLIF(s.daily_cost, 0)) * 100.0, 2
+        SUM((r.revenue - COALESCE(s.daily_cost, 0)) / NULLIF(s.daily_cost, 0))
+        * 100.0,
+        2
     ) AS roi_percentage
-FROM revenue_by_channel r
-JOIN ad_spend_by_channel s
-    ON r.lead_date = s.spend_date
-    AND r.source = s.utm_source
-    AND r.medium = s.utm_medium
-    AND r.campaign = s.utm_campaign
+FROM revenue_by_channel AS r
+INNER JOIN ad_spend_by_channel AS s
+    ON
+        r.lead_date = s.spend_date
+        AND r.source = s.utm_source
+        AND r.medium = s.utm_medium
+        AND r.campaign = s.utm_campaign
 GROUP BY r.lead_date, r.source, r.medium, r.campaign
 ORDER BY r.lead_date, r.source, r.medium, r.campaign;
