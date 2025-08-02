@@ -1,6 +1,6 @@
--- Анализ эффективности рекламных каналов: посетители, лиды, продажи, доход и расходы
+-- Анализ эффективности рекламных каналов:
+-- посетители, лиды, продажи, доход и расходы
 WITH first_touch_sessions AS (
-    -- Определяем первую сессию посетителя до или в день лида (last non-organic touch)
     SELECT
         s.visitor_id,
         s.visit_date,
@@ -14,14 +14,12 @@ WITH first_touch_sessions AS (
         l.status_id
     FROM sessions AS s
     LEFT JOIN leads AS l
-        ON
-            s.visitor_id = l.visitor_id
-            AND s.visit_date <= l.created_at  -- сессия до или в день лида
-    WHERE s.medium != 'organic'  -- исключаем органический трафик
+        ON s.visitor_id = l.visitor_id
+       AND s.visit_date <= l.created_at  -- сессия до или в день лида
+    WHERE s.medium != 'organic'  -- без органического трафика
 ),
 
 last_non_organic_touch AS (
-    -- Оставляем только последнюю сессию посетителя перед конверсией
     SELECT
         *,
         ROW_NUMBER() OVER (
@@ -32,7 +30,6 @@ last_non_organic_touch AS (
 ),
 
 qualified_visitors AS (
-    -- Агрегируем данные по каналам и датам
     SELECT
         source,
         medium,
@@ -41,15 +38,16 @@ qualified_visitors AS (
         COUNT(visitor_id) AS total_sessions,
         COUNT(lead_id) AS leads_generated,
         COUNT(CASE WHEN status_id = 142 THEN 1 END) AS successful_purchases,
-        COALESCE(SUM(CASE WHEN status_id = 142 THEN deal_value END), 0)
-            AS revenue
+        COALESCE(
+            SUM(CASE WHEN status_id = 142 THEN deal_value END),
+            0
+        ) AS revenue
     FROM last_non_organic_touch
-    WHERE rn = 1  -- только последний касаний
+    WHERE rn = 1
     GROUP BY session_date, source, medium, campaign
 ),
 
 ad_spend_daily AS (
-    -- Суммарные расходы по рекламе (VK + Яндекс)
     SELECT
         TO_CHAR(campaign_date, 'YYYY-MM-DD') AS spend_date,
         utm_source,
@@ -71,7 +69,6 @@ ad_spend_daily AS (
     GROUP BY spend_date, utm_source, utm_medium, utm_campaign
 )
 
--- Финальный отчет: объединение конверсий и расходов
 SELECT
     qv.session_date::DATE AS report_date,
     qv.source AS utm_source,
@@ -84,11 +81,10 @@ SELECT
     COALESCE(ad.daily_ad_cost, 0) AS ad_spend
 FROM qualified_visitors AS qv
 LEFT JOIN ad_spend_daily AS ad
-    ON
-        qv.session_date = ad.spend_date
-        AND qv.source = ad.utm_source
-        AND qv.medium = ad.utm_medium
-        AND qv.campaign = ad.utm_campaign
+    ON qv.session_date = ad.spend_date
+   AND qv.source = ad.utm_source
+   AND qv.medium = ad.utm_medium
+   AND qv.campaign = ad.utm_campaign
 ORDER BY
     qv.revenue DESC NULLS LAST,
     qv.session_date ASC,
