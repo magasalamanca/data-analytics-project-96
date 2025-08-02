@@ -14,8 +14,9 @@ WITH first_touch_sessions AS (
         l.status_id
     FROM sessions AS s
     LEFT JOIN leads AS l
-        ON s.visitor_id = l.visitor_id
-       AND s.visit_date <= l.created_at  -- сессия до или в день лида
+        ON
+            s.visitor_id = l.visitor_id
+            AND s.visit_date <= l.created_at  -- сессия до или в день лида
     WHERE s.medium != 'organic'  -- без органического трафика
 ),
 
@@ -81,10 +82,11 @@ SELECT
     COALESCE(ad.daily_ad_cost, 0) AS ad_spend
 FROM qualified_visitors AS qv
 LEFT JOIN ad_spend_daily AS ad
-    ON qv.session_date = ad.spend_date
-   AND qv.source = ad.utm_source
-   AND qv.medium = ad.utm_medium
-   AND qv.campaign = ad.utm_campaign
+    ON
+        qv.session_date = ad.spend_date
+        AND qv.source = ad.utm_source
+        AND qv.medium = ad.utm_medium
+        AND qv.campaign = ad.utm_campaign
 ORDER BY
     qv.revenue DESC NULLS LAST,
     qv.session_date ASC,
